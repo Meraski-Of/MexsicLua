@@ -1,0 +1,375 @@
+-- Mexsic Protected Framework
+local _P = game:GetService("Players")
+local _W = game:GetService("Workspace")
+local _U = game:GetService("UserInputService")
+local _T = game:GetService("TweenService")
+local _R = game:GetService("RunService")
+local _H = game:GetService("HttpService")
+local _V = game:GetService("VirtualInputManager")
+local _L = _P.LocalPlayer
+local _C = _W.CurrentCamera
+
+local _0xD3 = "https://discord.gg/kquH74Q8T5"
+
+-- Key Parçalanarak Gizlendi (ADd42Csar32)
+local function _fCheck(_in)
+    local _p1 = "ADd4"
+    local _p2 = "2Cs"
+    local _p3 = "ar32"
+    local _realKey = _p1 .. _p2 .. _p3
+    return _in == _realKey
+end
+
+local function _RUN_CORE()
+    local _cfg = {
+        Speed_Enabled = false, Speed_Value = 32, Fly_Enabled = false, Fly_Speed = 30,
+        InfinityJump_Enabled = false, NoClip_Enabled = false, Hitbox_Enabled = false,
+        Hitbox_Size = 12, GodMode_Enabled = false, KillFarm_Enabled = false,
+        Attack_Delay = 0.1, MenuKey = Enum.KeyCode.RightControl
+    }
+    local _fn = "Mexsic_Config.json"
+
+    local function _Sv()
+        local _s = {}
+        for k, v in pairs(_cfg) do
+            if typeof(v) == "EnumItem" then _s[k] = v.Name else _s[k] = v end
+        end
+        if writefile then writefile(_fn, _H:JSONEncode(_s)) end
+    end
+
+    local function _Ld()
+        if readfile and isfile and isfile(_fn) then
+            local ok, res = pcall(function() return _H:JSONDecode(readfile(_fn)) end)
+            if ok and type(res) == "table" then
+                for k, v in pairs(res) do
+                    if k == "MenuKey" and Enum.KeyCode[v] then _cfg[k] = Enum.KeyCode[v] else _cfg[k] = v end
+                end
+            end
+        end
+    end
+    _Ld()
+
+    local _fly, _bV, _bG, _tar = false, nil, nil, nil
+
+    local function _click()
+        _V:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+        task.wait(0.001)
+        _V:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+    end
+
+    local function _press(k)
+        _V:SendKeyEvent(true, k, false, game)
+        task.wait(0.005)
+        _V:SendKeyEvent(false, k, false, game)
+    end
+
+    _U.JumpRequest:Connect(function()
+        if _cfg.InfinityJump_Enabled and _L.Character then
+            local h = _L.Character:FindFirstChildOfClass("Humanoid")
+            if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+        end
+    end)
+
+    task.spawn(function()
+        while true do
+            task.wait(0.001)
+            if _cfg.KillFarm_Enabled and _L.Character then
+                local mH = _L.Character:FindFirstChild("HumanoidRootPart")
+                local mHum = _L.Character:FindFirstChildOfClass("Humanoid")
+
+                if mH and mHum and mHum.Health > 0 then
+                    local tP, sD = nil, math.huge
+                    for _, p in ipairs(_P:GetPlayers()) do
+                        if p ~= _L and p.Character then
+                            local eH = p.Character:FindFirstChild("HumanoidRootPart")
+                            local eHum = p.Character:FindFirstChildOfClass("Humanoid")
+                            local eN = not (p.Team and _L.Team and p.Team == _L.Team)
+                            if eH and eHum and eHum.Health > 0 and eN then
+                                local d = (mH.Position - eH.Position).Magnitude
+                                if d < sD then sD = d tP = p end
+                            end
+                        end
+                    end
+
+                    if tP and tP.Character then
+                        local tH = tP.Character:FindFirstChild("HumanoidRootPart")
+                        local tHum = tP.Character:FindFirstChildOfClass("Humanoid")
+                        _tar = tH
+
+                        while _cfg.KillFarm_Enabled and tH and tH.Parent and tHum and tHum.Health > 0 and mHum.Health > 0 do
+                            task.spawn(_click)
+                            _press(Enum.KeyCode.One) task.wait(0.01)
+                            if not (tHum and tHum.Health > 0 and _cfg.KillFarm_Enabled) then break end
+                            _press(Enum.KeyCode.Two) task.wait(0.01)
+                            if not (tHum and tHum.Health > 0 and _cfg.KillFarm_Enabled) then break end
+                            _press(Enum.KeyCode.Three) task.wait(0.01)
+                            if not (tHum and tHum.Health > 0 and _cfg.KillFarm_Enabled) then break end
+
+                            local tm = tick()
+                            while (tick() - tm) < _cfg.Attack_Delay do
+                                if not (tHum and tHum.Health > 0 and _cfg.KillFarm_Enabled) then break end
+                                _click() task.wait(0.01)
+                            end
+                        end
+                        _tar = nil
+                    else _tar = nil end
+                end
+            else _tar = nil end
+        end
+    end)
+
+    _R.PreRender:Connect(function()
+        local c = _L.Character
+        if not c then return end
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        local hum = c:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+
+        if _cfg.KillFarm_Enabled and _tar and _tar.Parent then
+            local sp = _tar.CFrame * CFrame.new(0, 2.8, 1.2)
+            hrp.CFrame = CFrame.new(sp.Position, _tar.Position)
+            _tar.Velocity = Vector3.zero
+            hrp.Velocity = Vector3.zero
+        end
+
+        if _cfg.GodMode_Enabled then
+            hum.MaxHealth = 100000 hum.Health = 100000
+            hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+        else hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true) end
+
+        if _cfg.NoClip_Enabled or _cfg.KillFarm_Enabled then
+            for _, p in ipairs(c:GetChildren()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+
+        hum.WalkSpeed = _cfg.Speed_Enabled and _cfg.Speed_Value or 16
+
+        if _cfg.Fly_Enabled then
+            if not _fly then
+                _fly = true
+                _bV = Instance.new("BodyVelocity") _bV.MaxForce = Vector3.new(1e5,1e5,1e5) _bV.Velocity = Vector3.zero _bV.Parent = hrp
+                _bG = Instance.new("BodyGyro") _bG.MaxTorque = Vector3.new(1e5,1e5,1e5) _bG.CFrame = hrp.CFrame _bG.Parent = hrp
+            end
+            local mD = Vector3.zero
+            if _U:IsKeyDown(Enum.KeyCode.W) then mD = mD + _C.CFrame.LookVector end
+            if _U:IsKeyDown(Enum.KeyCode.S) then mD = mD - _C.CFrame.LookVector end
+            if _U:IsKeyDown(Enum.KeyCode.D) then mD = mD + _C.CFrame.RightVector end
+            if _U:IsKeyDown(Enum.KeyCode.A) then mD = mD - _C.CFrame.RightVector end
+            if _U:IsKeyDown(Enum.KeyCode.Space) then mD = mD + Vector3.new(0,1,0) end
+            if _U:IsKeyDown(Enum.KeyCode.LeftShift) then mD = mD - Vector3.new(0,1,0) end
+            if _bV and _bG then _bG.CFrame = _C.CFrame _bV.Velocity = mD * _cfg.Fly_Speed end
+        else
+            if _fly then
+                _fly = false
+                if _bV then _bV:Destroy() _bV = nil end
+                if _bG then _bG:Destroy() _bG = nil end
+            end
+        end
+
+        for _, p in ipairs(_P:GetPlayers()) do
+            if p ~= _L and p.Character then
+                local eH = p.Character:FindFirstChild("HumanoidRootPart")
+                local eHum = p.Character:FindFirstChildOfClass("Humanoid")
+                local eN = not (p.Team and _L.Team and p.Team == _L.Team)
+                if eH and eHum and eHum.Health > 0 and eN then
+                    if _cfg.Hitbox_Enabled or _cfg.KillFarm_Enabled then
+                        local sz = _cfg.KillFarm_Enabled and math.max(_cfg.Hitbox_Size, 10) or _cfg.Hitbox_Size
+                        eH.Size = Vector3.new(sz, sz, sz) eH.Transparency = 0.7 eH.BrickColor = BrickColor.new("Really purple")
+                        eH.Material = Enum.Material.Neon eH.CanCollide = false
+                    else
+                        eH.Size = Vector3.new(2, 2, 1) eH.Transparency = 1 eH.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+
+    local pG = _L:WaitForChild("PlayerGui")
+    if pG:FindFirstChild("MexsicMenuGui") then pG.MexsicMenuGui:Destroy() end
+
+    local sG = Instance.new("ScreenGui") sG.Name = "MexsicMenuGui" sG.ResetOnSpawn = false sG.Parent = pG
+    local mF = Instance.new("Frame") mF.Size = UDim2.new(0, 620, 0, 410) mF.Position = UDim2.new(0.5, -310, 0.5, -205)
+    mF.BackgroundColor3 = Color3.fromRGB(10, 7, 20) mF.BackgroundTransparency = 0.2 mF.Active = true mF.Draggable = true mF.ClipsDescendants = true mF.Parent = sG
+    local mC = Instance.new("UICorner") mC.CornerRadius = UDim.new(0, 12) mC.Parent = mF
+    local mS = Instance.new("UIStroke") mS.Thickness = 2 mS.Color = Color3.fromRGB(140, 50, 255) mS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border mS.Parent = mF
+
+    task.spawn(function()
+        while task.wait() do
+            for i = 0, 1, 0.005 do
+                mS.Color = Color3.fromRGB(math.floor(95 + math.sin(i * math.pi * 2) * 45), math.floor(30 + math.cos(i * math.pi * 2) * 25), math.floor(215 + math.sin(i * math.pi * 2) * 40))
+                task.wait(0.03)
+            end
+        end
+    end)
+
+    local hd = Instance.new("Frame") hd.Size = UDim2.new(1, 0, 0, 44) hd.BackgroundColor3 = Color3.fromRGB(15, 10, 30) hd.BackgroundTransparency = 0.3 hd.Parent = mF
+    local tG = Instance.new("TextLabel") tG.Size = UDim2.new(1, -20, 1, 0) tG.Position = UDim2.new(0, 18, 0, 2) tG.BackgroundTransparency = 1 tG.Text = "MEXSIC TSB HACK (ULTRA)" tG.TextColor3 = Color3.fromRGB(70, 15, 150) tG.TextSize = 20 tG.Font = Enum.Font.GothamBold tG.TextXAlignment = Enum.TextXAlignment.Left tG.Parent = hd
+    local tt = Instance.new("TextLabel") tt.Size = UDim2.new(1, -20, 1, 0) tt.Position = UDim2.new(0, 16, 0, 0) tt.BackgroundTransparency = 1 tt.Text = "MEXSIC TSB HACK (ULTRA)" tt.TextColor3 = Color3.fromRGB(210, 150, 255) tt.TextSize = 20 tt.Font = Enum.Font.GothamBold tt.TextXAlignment = Enum.TextXAlignment.Left tt.Parent = hd
+
+    local sb = Instance.new("Frame") sb.Size = UDim2.new(0, 135, 1, -54) sb.Position = UDim2.new(0, 10, 0, 48) sb.BackgroundColor3 = Color3.fromRGB(14, 9, 25) sb.BackgroundTransparency = 0.35 sb.Parent = mF
+    Instance.new("UICorner", sb).CornerRadius = UDim.new(0, 8)
+    local sL = Instance.new("UIListLayout") sL.Padding = UDim.new(0, 6) sL.SortOrder = Enum.SortOrder.LayoutOrder sL.Parent = sb
+    local sP = Instance.new("UIPadding") sP.PaddingTop = UDim.new(0, 8) sP.PaddingLeft = UDim.new(0, 6) sP.PaddingRight = UDim.new(0, 6) sP.Parent = sb
+
+    local cC = Instance.new("Frame") cC.Size = UDim2.new(1, -160, 1, -54) cC.Position = UDim2.new(0, 150, 0, 48) cC.BackgroundTransparency = 1 cC.Parent = mF
+    local tBs, tPs = {}, {}
+
+    local function cTab(n, o)
+        local btn = Instance.new("TextButton") btn.Size = UDim2.new(1, 0, 0, 36) btn.BackgroundColor3 = Color3.fromRGB(22, 15, 42) btn.BackgroundTransparency = 0.3 btn.Text = n btn.TextColor3 = Color3.fromRGB(160, 160, 190) btn.TextSize = 13 btn.Font = Enum.Font.GothamBold btn.LayoutOrder = o btn.Parent = sb
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        local pg = Instance.new("ScrollingFrame") pg.Size = UDim2.new(1, -10, 1, -10) pg.BackgroundTransparency = 1 pg.ScrollBarThickness = 3 pg.ScrollBarImageColor3 = Color3.fromRGB(130, 50, 240) pg.Visible = false pg.Parent = cC
+        local pL = Instance.new("UIListLayout") pL.Padding = UDim.new(0, 8) pL.SortOrder = Enum.SortOrder.LayoutOrder pL.Parent = pg
+        pL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() pg.CanvasSize = UDim2.new(0, 0, 0, pL.AbsoluteContentSize.Y + 10) end)
+
+        btn.MouseButton1Click:Connect(function()
+            for _, p in pairs(tPs) do p.Visible = false end
+            for _, b in pairs(tBs) do _T:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 15, 42), TextColor3 = Color3.fromRGB(160, 160, 190)}):Play() end
+            pg.Visible = true
+            _T:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(110, 45, 235), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        end)
+        tPs[n] = pg tBs[n] = btn return pg
+    end
+
+    local pC = cTab("Combat", 1) local pM = cTab("Movement", 2) local pF = cTab("Kill Farm", 3) local pS = cTab("Settings", 4)
+    tPs["Combat"].Visible = true tBs["Combat"].BackgroundColor3 = Color3.fromRGB(110, 45, 235) tBs["Combat"].TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    local function aTog(parent, text, key)
+        local r = Instance.new("Frame") r.Size = UDim2.new(1, -6, 0, 42) r.BackgroundColor3 = Color3.fromRGB(18, 12, 35) r.BackgroundTransparency = 0.3 r.Parent = parent
+        Instance.new("UICorner", r).CornerRadius = UDim.new(0, 8)
+        local txt = Instance.new("TextLabel") txt.Size = UDim2.new(0.6, 0, 1, 0) txt.Position = UDim2.new(0, 12, 0, 0) txt.BackgroundTransparency = 1 txt.Text = text txt.TextColor3 = Color3.fromRGB(230, 230, 255) txt.TextSize = 13 txt.Font = Enum.Font.GothamSemibold txt.TextXAlignment = Enum.TextXAlignment.Left txt.Parent = r
+        local sB = Instance.new("TextButton") sB.Size = UDim2.new(0, 48, 0, 22) sB.Position = UDim2.new(1, -58, 0.5, -11) sB.BackgroundColor3 = _cfg[key] and Color3.fromRGB(125, 45, 245) or Color3.fromRGB(30, 22, 50) sB.Text = "" sB.AutoButtonColor = false sB.Parent = r
+        Instance.new("UICorner", sB).CornerRadius = UDim.new(1, 0)
+        local sK = Instance.new("Frame") sK.Size = UDim2.new(0, 16, 0, 16) sK.Position = _cfg[key] and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) sK.BackgroundColor3 = _cfg[key] and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 180) sK.Parent = sB
+        Instance.new("UICorner", sK).CornerRadius = UDim.new(1, 0)
+
+        sB.MouseButton1Click:Connect(function()
+            _cfg[key] = not _cfg[key]
+            local en = _cfg[key]
+            _T:Create(sB, TweenInfo.new(0.2), {BackgroundColor3 = en and Color3.fromRGB(125, 45, 245) or Color3.fromRGB(30, 22, 50)}):Play()
+            _T:Create(sK, TweenInfo.new(0.2), {Position = en and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8), BackgroundColor3 = en and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 180)}):Play()
+        end)
+    end
+
+    local function aSld(parent, text, min, max, key)
+        local r = Instance.new("Frame") r.Size = UDim2.new(1, -6, 0, 50) r.BackgroundColor3 = Color3.fromRGB(18, 12, 35) r.BackgroundTransparency = 0.3 r.Parent = parent
+        Instance.new("UICorner", r).CornerRadius = UDim.new(0, 8)
+        local txt = Instance.new("TextLabel") txt.Size = UDim2.new(0.6, 0, 0, 22) txt.Position = UDim2.new(0, 12, 0, 4) txt.BackgroundTransparency = 1 txt.Text = text txt.TextColor3 = Color3.fromRGB(230, 230, 255) txt.TextSize = 12 txt.Font = Enum.Font.GothamSemibold txt.TextXAlignment = Enum.TextXAlignment.Left txt.Parent = r
+        local val = Instance.new("TextLabel") val.Size = UDim2.new(0.3, 0, 0, 22) val.Position = UDim2.new(0.7, -12, 0, 4) val.BackgroundTransparency = 1 val.Text = tostring(_cfg[key]) val.TextColor3 = Color3.fromRGB(170, 150, 230) val.TextSize = 12 val.Font = Enum.Font.Gotham val.TextXAlignment = Enum.TextXAlignment.Right val.Parent = r
+        local trk = Instance.new("TextButton") trk.Size = UDim2.new(1, -24, 0, 6) trk.Position = UDim2.new(0, 12, 1, -14) trk.BackgroundColor3 = Color3.fromRGB(30, 22, 50) trk.Text = "" trk.AutoButtonColor = false trk.Parent = r
+        Instance.new("UICorner", trk).CornerRadius = UDim.new(1, 0)
+        local pct = (_cfg[key] - min) / (max - min)
+        local fil = Instance.new("Frame") fil.Size = UDim2.new(pct, 0, 1, 0) fil.BackgroundColor3 = Color3.fromRGB(130, 50, 240) fil.Parent = trk
+        Instance.new("UICorner", fil).CornerRadius = UDim.new(1, 0)
+
+        local drg = false
+        trk.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drg = true end end)
+        _U.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drg = false end end)
+        _U.InputChanged:Connect(function(i)
+            if drg and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+                local mP = _U:GetMouseLocation().X local tP = trk.AbsolutePosition.X local tW = trk.AbsoluteSize.X
+                local rP = math.clamp((mP - tP) / tW, 0, 1) local v = math.floor(min + (max - min) * rP)
+                _cfg[key] = v val.Text = tostring(v) fil.Size = UDim2.new(rP, 0, 1, 0)
+            end
+        end)
+    end
+
+    local function aBtn(parent, text, cb)
+        local b = Instance.new("TextButton") b.Size = UDim2.new(1, -6, 0, 38) b.BackgroundColor3 = Color3.fromRGB(26, 18, 48) b.Text = text b.TextColor3 = Color3.fromRGB(220, 220, 255) b.TextSize = 13 b.Font = Enum.Font.GothamBold b.Parent = parent
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
+        b.MouseButton1Click:Connect(function()
+            _T:Create(b, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(110, 45, 235)}):Play() task.wait(0.1)
+            _T:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(26, 18, 48)}):Play()
+            if cb then cb() end
+        end)
+    end
+
+    aTog(pC, "Hitbox Extender", "Hitbox_Enabled") aSld(pC, "Hitbox Size", 2, 35, "Hitbox_Size") aTog(pC, "GodMode (God Health)", "GodMode_Enabled")
+    aTog(pM, "Speed Boost", "Speed_Enabled") aSld(pM, "Speed Multiplier", 16, 150, "Speed_Value") aTog(pM, "Legit Fly", "Fly_Enabled") aSld(pM, "Fly Speed", 10, 100, "Fly_Speed") aTog(pM, "Infinity Jump", "InfinityJump_Enabled") aTog(pM, "NoClip", "NoClip_Enabled")
+    aTog(pF, "Invincible Auto Kill Farm", "KillFarm_Enabled") aSld(pF, "Combo Delay (s)", 0.01, 2, "Attack_Delay")
+    aBtn(pS, "Save Config", _Sv) aBtn(pS, "Load Config", _Ld)
+
+    local mV, mA = true, false
+    _U.InputBegan:Connect(function(i, g)
+        if not g and i.KeyCode == _cfg.MenuKey and not mA then
+            mA = true mV = not mV
+            if mV then
+                mF.Visible = true mF.Size = UDim2.new(0, 0, 0, 0) mF.Position = UDim2.new(0.5, 0, 0.5, 0)
+                local op = _T:Create(mF, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 620, 0, 410), Position = UDim2.new(0.5, -310, 0.5, -205)})
+                op:Play() op.Completed:Connect(function() mA = false end)
+            else
+                local cl = _T:Create(mF, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+                cl:Play() cl.Completed:Connect(function() mF.Visible = false mA = false end)
+            end
+        end
+    end)
+end
+
+-- Key Interface Setup
+local _pG = _L:WaitForChild("PlayerGui")
+if _pG:FindFirstChild("MexsicMenuGui") then _pG.MexsicMenuGui:Destroy() end
+
+local _kSG = Instance.new("ScreenGui") _kSG.Name = "MexsicKeyGui" _kSG.ResetOnSpawn = false _kSG.Parent = _pG
+local _kMF = Instance.new("Frame") _kMF.Size = UDim2.new(0, 420, 0, 300) _kMF.Position = UDim2.new(0.5, -210, 0.5, -150) _kMF.BackgroundColor3 = Color3.fromRGB(10, 7, 20) _kMF.BackgroundTransparency = 0.15 _kMF.Active = true _kMF.Draggable = true _kMF.ClipsDescendants = true _kMF.Parent = _kSG
+Instance.new("UICorner", _kMF).CornerRadius = UDim.new(0, 12)
+local _kMS = Instance.new("UIStroke") _kMS.Thickness = 2 _kMS.Color = Color3.fromRGB(140, 50, 255) _kMS.ApplyStrokeMode = Enum.ApplyStrokeMode.Border _kMS.Parent = _kMF
+
+task.spawn(function()
+    while task.wait() do
+        for i = 0, 1, 0.005 do
+            _kMS.Color = Color3.fromRGB(math.floor(95 + math.sin(i * math.pi * 2) * 45), math.floor(30 + math.cos(i * math.pi * 2) * 25), math.floor(215 + math.sin(i * math.pi * 2) * 40))
+            task.wait(0.03)
+        end
+    end
+end)
+
+local _kHD = Instance.new("Frame") _kHD.Size = UDim2.new(1, 0, 0, 45) _kHD.BackgroundColor3 = Color3.fromRGB(15, 10, 30) _kHD.BackgroundTransparency = 0.3 _kHD.Parent = _kMF
+local _kTG = Instance.new("TextLabel") _kTG.Size = UDim2.new(1, 0, 1, 0) _kTG.Position = UDim2.new(0, 2, 0, 2) _kTG.BackgroundTransparency = 1 _kTG.Text = "MEXSIC KEY SYSTEM" _kTG.TextColor3 = Color3.fromRGB(70, 15, 150) _kTG.TextSize = 18 _kTG.Font = Enum.Font.GothamBold _kTG.Parent = _kHD
+local _kTT = Instance.new("TextLabel") _kTT.Size = UDim2.new(1, 0, 1, 0) _kTT.BackgroundTransparency = 1 _kTT.Text = "MEXSIC KEY SYSTEM" _kTT.TextColor3 = Color3.fromRGB(210, 150, 255) _kTT.TextSize = 18 _kTT.Font = Enum.Font.GothamBold _kTT.Parent = _kHD
+
+local _kCT = Instance.new("Frame") _kCT.Size = UDim2.new(1, -40, 1, -65) _kCT.Position = UDim2.new(0, 20, 0, 55) _kCT.BackgroundTransparency = 1 _kCT.Parent = _kMF
+local _iBF = Instance.new("Frame") _iBF.Size = UDim2.new(1, 0, 0, 42) _iBF.Position = UDim2.new(0, 0, 0, 10) _iBF.BackgroundColor3 = Color3.fromRGB(18, 12, 35) _iBF.Parent = _kCT
+Instance.new("UICorner", _iBF).CornerRadius = UDim.new(0, 8)
+local _iST = Instance.new("UIStroke") _iST.Thickness = 1 _iST.Color = Color3.fromRGB(80, 40, 140) _iST.ApplyStrokeMode = Enum.ApplyStrokeMode.Border _iST.Parent = _iBF
+
+local _kTB = Instance.new("TextBox") _kTB.Size = UDim2.new(1, -20, 1, 0) _kTB.Position = UDim2.new(0, 10, 0, 0) _kTB.BackgroundTransparency = 1 _kTB.PlaceholderText = "Enter Key Here..." _kTB.PlaceholderColor3 = Color3.fromRGB(120, 110, 150) _kTB.Text = "" _kTB.TextColor3 = Color3.fromRGB(240, 240, 255) _kTB.TextSize = 13 _kTB.Font = Enum.Font.GothamSemibold _kTB.ClearTextOnFocus = false _kTB.Parent = _iBF
+local _sL = Instance.new("TextLabel") _sL.Size = UDim2.new(1, 0, 0, 20) _sL.Position = UDim2.new(0, 0, 0, 56) _sL.BackgroundTransparency = 1 _sL.Text = "Please enter your key to continue" _sL.TextColor3 = Color3.fromRGB(160, 150, 190) _sL.TextSize = 11 _sL.Font = Enum.Font.Gotham _sL.Parent = _kCT
+
+local _cB = Instance.new("TextButton") _cB.Size = UDim2.new(0.48, 0, 0, 38) _cB.Position = UDim2.new(0, 0, 0, 82) _cB.BackgroundColor3 = Color3.fromRGB(110, 45, 235) _cB.Text = "CHECK KEY" _cB.TextColor3 = Color3.fromRGB(255, 255, 255) _cB.TextSize = 12 _cB.Font = Enum.Font.GothamBold _cB.Parent = _kCT
+Instance.new("UICorner", _cB).CornerRadius = UDim.new(0, 8)
+local _gB = Instance.new("TextButton") _gB.Size = UDim2.new(0.48, 0, 0, 38) _gB.Position = UDim2.new(0.52, 0, 0, 82) _gB.BackgroundColor3 = Color3.fromRGB(26, 18, 48) _gB.Text = "GET KEY LINK" _gB.TextColor3 = Color3.fromRGB(200, 190, 230) _gB.TextSize = 12 _gB.Font = Enum.Font.GothamBold _gB.Parent = _kCT
+Instance.new("UICorner", _gB).CornerRadius = UDim.new(0, 8)
+local _dB = Instance.new("TextButton") _dB.Size = UDim2.new(1, 0, 0, 38) _dB.Position = UDim2.new(0, 0, 0, 128) _dB.BackgroundColor3 = Color3.fromRGB(88, 101, 242) _dB.Text = "JOIN DISCORD SERVER" _dB.TextColor3 = Color3.fromRGB(255, 255, 255) _dB.TextSize = 12 _dB.Font = Enum.Font.GothamBold _dB.Parent = _kCT
+Instance.new("UICorner", _dB).CornerRadius = UDim.new(0, 8)
+
+local function _closeKey()
+    local cl = _T:Create(_kMF, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+    cl:Play() cl.Completed:Connect(function() _kSG:Destroy() end)
+end
+
+_dB.MouseButton1Click:Connect(function()
+    if setclipboard then setclipboard(_0xD3) _sL.Text = "Discord link copied to clipboard!" _sL.TextColor3 = Color3.fromRGB(120, 220, 255)
+    else _sL.Text = "Clipboard function not supported!" _sL.TextColor3 = Color3.fromRGB(255, 120, 120) end
+end)
+
+_gB.MouseButton1Click:Connect(function()
+    if setclipboard then setclipboard(_0xD3) _sL.Text = "Key link copied to clipboard!" _sL.TextColor3 = Color3.fromRGB(120, 220, 255)
+    else _sL.Text = "Clipboard function not supported!" _sL.TextColor3 = Color3.fromRGB(255, 120, 120) end
+end)
+
+_cB.MouseButton1Click:Connect(function()
+    local val = _kTB.Text
+    if _fCheck(val) then
+        _sL.Text = "Key Approved! Opening TSB Hub..." _sL.TextColor3 = Color3.fromRGB(120, 255, 150) _cB.BackgroundColor3 = Color3.fromRGB(40, 180, 90)
+        task.wait(0.8) _closeKey() _RUN_CORE()
+    elseif val == "" then
+        _sL.Text = "Key cannot be empty!" _sL.TextColor3 = Color3.fromRGB(255, 150, 80)
+    else
+        _sL.Text = "Invalid Key! Please try again." _sL.TextColor3 = Color3.fromRGB(255, 80, 80)
+        _T:Create(_iST, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 50, 50)}):Play() task.wait(0.5)
+        _T:Create(_iST, TweenInfo.new(0.2), {Color = Color3.fromRGB(80, 40, 140)}):Play()
+    end
+end)
+
+_kMF.Size = UDim2.new(0, 0, 0, 0) _kMF.Position = UDim2.new(0.5, 0, 0.5, 0)
+_T:Create(_kMF, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 420, 0, 300), Position = UDim2.new(0.5, -210, 0.5, -150)}):Play()
